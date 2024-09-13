@@ -22,7 +22,7 @@ def isBot(name: str):
 			return True
 	return False
 
-
+# 保存程序配置
 def get_stat_data(uuid: str, cls: str, target: str) -> Optional[int]:
 	try:
 		with open(os.path.join(Config.get_instance().get_world_path(), 'stats', uuid + '.json'), 'r') as f:

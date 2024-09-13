@@ -9,10 +9,13 @@ class Config(Serializable):
 	world_folder: str = 'world'
 	save_world_on_query: bool = False
 	save_world_on_rank: bool = False
-	save_world_on_scoreboard: bool = True
+	save_world_on_scoreboard: bool = True # 保存世界时是否保存计分板
 	player_name_blacklist: List[str] = [
 		'^bot.*', 'Steve', 'Alex'
 	]
+	scroll: bool = False  # 是否启用滚动显示
+	scroll_interval: int = 5  # 滚动显示间隔时间
+	
 
 	def get_world_path(self) -> str:
 		return os.path.join(self.server_path, self.world_folder)

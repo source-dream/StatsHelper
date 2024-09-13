@@ -66,8 +66,8 @@ def refresh_uuid_list(server: ServerInterface):
 	save_uuid_list()
 
 	# compatibility
-	if os.path.isdir(os.path.dirname(constants.UUIDFilePrev)):
-		shutil.rmtree(os.path.dirname(constants.UUIDFilePrev))
+	# if os.path.isdir(os.path.dirname(constants.UUIDFilePrev)):
+	# 	shutil.rmtree(os.path.dirname(constants.UUIDFilePrev))
 
 
 def save_uuid_list():
@@ -101,6 +101,7 @@ def get_player_list(list_bot: bool) -> List[UUID_LIST_ITEM]:
 
 
 def trigger_save_all(server: ServerInterface):
+	# 检查当前线程是否为主线程
 	assert not server.is_on_executor_thread()
 	global flag_save_all
 	flag_save_all = False
@@ -188,21 +189,39 @@ def show_scoreboard(server: ServerInterface):
 def hide_scoreboard(server: ServerInterface):
 	server.execute('scoreboard objectives setdisplay sidebar')
 
+# 滚动显示排行榜
+def scroll_scoreboard(source: CommandSource):
+	server = source.get_server()
+	server.logger.info('滚动显示排行榜')
+	# 获取保存的计分板列表
+	saved_list = quick_scoreboards.list_scoreboard()
+	if len(saved_list) == 0:
+		server.logger.info('没有保存的计分板')
+		return
+	while config.scroll:
+		for s in saved_list:
+			build_scoreboard(source, s.cls, s.target, s.title, list_bot=False)
+			time.sleep(config.scroll_interval)
 
 def build_scoreboard(source: CommandSource, cls: str, target: str, title: Optional[str] = None, list_bot: bool = False):
 	server = source.get_server()
 	player_list = get_player_list(list_bot)
 	if config.save_world_on_scoreboard:
 		trigger_save_all(server)
+	# 移除原有计分板
 	server.execute('scoreboard objectives remove {}'.format(constants.ScoreboardName))
 	if title is None:
 		title = get_display_text(cls, target)
 	else:
 		title = RTextBase.from_any(title)
+	# scoreboard objectives add <name> <criteria> <dispqlayName>
 	server.execute('scoreboard objectives add {} minecraft.{}:minecraft.{} {}'.format(constants.ScoreboardName, cls, target, title.to_json_str()))
+	
 	for name, uuid in player_list:
 		value = utils.get_stat_data(uuid, cls, target)
 		if value is not None:
+			# if target == 'aviate_one_cm':
+			# 	value = value // 1000
 			server.execute('scoreboard players set {} {} {}'.format(name, constants.ScoreboardName, value))
 	show_scoreboard(server)
 
@@ -225,6 +244,7 @@ def rm_scoreboard(source: CommandSource, alias: str):
 
 
 def list_quick_scoreboard(source: CommandSource, is_tell: bool):
+	# 获取保存的计分板列表
 	saved_list = quick_scoreboards.list_scoreboard()
 	print_text = RTextList()
 	print_text.append(tr('list_scoreboard.summary') + RText('[+]', color=RColor.green).c(RAction.suggest_command, f'{constants.Prefix} save ').h('list_scoreboard.add') + '\n')
@@ -298,6 +318,14 @@ def register_command(server: PluginServerInterface):
 	def _add_player_to_uuid_list(source: CommandSource, player: str):
 		add_player_to_uuid_list(source, player)
 
+	@new_thread(PLUGIN_ID + ' scorll scoreboard')
+	def _scroll_scoreboard(source: CommandSource):
+		config.scroll = not config.scroll
+		if not config.scroll:
+			server.logger.info('停止滚动显示')
+			return
+		scroll_scoreboard(source)
+
 	server.register_command(
 		Literal(constants.Prefix).
 		runs(show_help).
@@ -339,11 +367,15 @@ def register_command(server: PluginServerInterface):
 				lambda src, ctx: rm_scoreboard(src, ctx['alias'])
 			)
 		)).
-
 		then(
 			Literal('scoreboard').
 			then(Literal('show').runs(lambda src: show_scoreboard(src.get_server()))).
 			then(Literal('hide').runs(lambda src: hide_scoreboard(src.get_server()))).
+			# 滚动显示
+			# !!stats scoreboard scroll
+			then(
+				Literal('scroll').runs(lambda src: _scroll_scoreboard(src))
+			).
 			# !!stats scoreboard [统计类别] [统计内容] [<标题>] [<-args>]
 			# !!stats [保存的统计项] [<-args>]
 			then(
@@ -361,14 +393,14 @@ def register_command(server: PluginServerInterface):
 		))
 	)
 
-
+# 保存uuid列表
 def on_info(server: PluginServerInterface, info: Info):
 	if not info.is_user:
 		if info.content == 'Saved the game':
 			global flag_save_all
 			flag_save_all = True
 
-
+# 插件卸载时保存uuid列表
 def on_unload(server: PluginServerInterface):
 	global flag_unload
 	flag_unload = True
@@ -377,6 +409,14 @@ def on_unload(server: PluginServerInterface):
 def on_player_joined(server: PluginServerInterface, player: str, info: Info):
 	refresh_uuid_list(server)
 
+def init_scoreboard(server: PluginServerInterface):
+
+	@new_thread(PLUGIN_ID + ' scorll scoreboard')
+	def _scroll_scoreboard(source: CommandSource):
+		scroll_scoreboard(source)
+	server.logger.info('初始化计分板 {}'.format(config.scroll))
+	if config.scroll:
+		_scroll_scoreboard(server.get_console())
 
 def on_load(server: PluginServerInterface, old_module):
 	global PLUGIN_ID, HelpMessage, config
@@ -389,3 +429,4 @@ def on_load(server: PluginServerInterface, old_module):
 	server.logger.info('UUID list size: {}'.format(len(uuid_list)))
 	server.register_help_message(constants.Prefix, tr('summary_help'))
 	register_command(server)
+	init_scoreboard(server)
