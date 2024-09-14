@@ -37,7 +37,7 @@ StatsHelper
 
 <统计类别>: killed, killed_by, dropped, picked_up, used, mined, broken, crafted, custom, killed, killed_by 的 <统计内容> 为 [生物id]
 
-picked_up, used, mined, broken, crafted 的 <统计内容> 为物品/方块id
+picked_up, used, mined, broken, crafted 的 <统计内容> 为物品/方块id 通配符为`#all`
 
 custom 的 <统计内容> 详见统计信息的json文件，或 [MC Wiki](https://minecraft.fandom.com/zh/wiki/%E7%BB%9F%E8%AE%A1%E4%BF%A1%E6%81%AF)
 

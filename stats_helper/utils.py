@@ -29,7 +29,12 @@ def get_stat_data(uuid: str, cls: str, target: str) -> Optional[int]:
 			target_data: Dict[str, int] = json.load(f)['stats']['minecraft:' + cls]
 			if target == constants.AllTargetTag:
 				return sum(target_data.values())
-			return target_data['minecraft:' + target]
+			data = target_data['minecraft:' + target]
+			if target == 'aviate_one_cm':
+				data = data // 100
+			if target == "play_time":
+				data = data // 20
+			return data
 	except:
 		return None
 

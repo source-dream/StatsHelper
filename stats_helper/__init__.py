@@ -215,13 +215,14 @@ def build_scoreboard(source: CommandSource, cls: str, target: str, title: Option
 	else:
 		title = RTextBase.from_any(title)
 	# scoreboard objectives add <name> <criteria> <dispqlayName>
-	server.execute('scoreboard objectives add {} minecraft.{}:minecraft.{} {}'.format(constants.ScoreboardName, cls, target, title.to_json_str()))
+	if target in ['aviate_one_cm', 'play_one_minute']:
+		server.execute('scoreboard objectives add {} dummy {}'.format(constants.ScoreboardName, cls, target, title.to_json_str()))
+	else:
+		server.execute('scoreboard objectives add {} minecraft.{}:minecraft.{} {}'.format(constants.ScoreboardName, cls, target, title.to_json_str()))
 	
 	for name, uuid in player_list:
 		value = utils.get_stat_data(uuid, cls, target)
 		if value is not None:
-			# if target == 'aviate_one_cm':
-			# 	value = value // 1000
 			server.execute('scoreboard players set {} {} {}'.format(name, constants.ScoreboardName, value))
 	show_scoreboard(server)
 
