@@ -213,7 +213,7 @@ def build_scoreboard(server: ServerInterface, cls: str, target: str, title: Opti
 	else:
 		title = RTextBase.from_any(title)
 	# scoreboard objectives add <name> <criteria> <dispqlayName>
-	if target in ['aviate_one_cm', 'play_one_minute']:
+	if target in ['aviate_one_cm', 'play_time', "#all"]:
 		server.execute('scoreboard objectives add {} dummy {}'.format(constants.ScoreboardName, title.to_json_str()))
 	else:
 		server.execute('scoreboard objectives add {} minecraft.{}:minecraft.{} {}'.format(constants.ScoreboardName, cls, target, title.to_json_str()))
